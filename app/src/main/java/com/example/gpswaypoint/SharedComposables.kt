@@ -103,10 +103,154 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
             drawContext.canvas.nativeCanvas.drawText("S", centerX, centerY + radius - 20, textPaint)
         }
         // Draw lines pointing towards each waypoint
+        waypoints.forEach { waypoint ->
+            if (currentLocation != null) {
+                val angle = bearingTo(currentLocation, waypoint)
+                val adjustedAngle = Math.toRadians((angle - rotation).toDouble())
+                val lineEndX = (centerX + radius * cos(adjustedAngle)).toFloat()
+                val lineEndY = (centerY + radius * sin(adjustedAngle)).toFloat()
+                val arrowLength = radius  // Adjust the length of the arrow as needed
+                val arrowHeadSize = 40f
+                if (waypoint == selectedWaypoint) {
+                    drawLine(
+                        color = if (waypoint == selectedWaypoint) Color.Green else Color.Blue,
+                        start = Offset(centerX, centerY),
+                        end = Offset(lineEndX, lineEndY),
+                        strokeWidth = 4f
+                    )
+                }
+
+                val endX = (centerX + arrowLength * cos(adjustedAngle)).toFloat()
+                val endY = (centerY + arrowLength * sin(adjustedAngle)).toFloat()
+                // Draw the outward-pointing arrow head
+                val arrowPath = Path().apply {
+                    moveTo(endX, endY)
+                    lineTo((endX - arrowHeadSize * cos(adjustedAngle - Math.PI / 6)).toFloat(),
+                        (endY - arrowHeadSize * sin(adjustedAngle - Math.PI / 6)).toFloat()
+                    )
+                    lineTo((endX - arrowHeadSize * cos(adjustedAngle + Math.PI / 6)).toFloat(),
+                        (endY - arrowHeadSize * sin(adjustedAngle + Math.PI / 6)).toFloat()
+                    )
+                    close()
+                }
+                if (waypoint == selectedWaypoint) {
+                    drawPath(
+                        arrowPath,
+                        color = if (waypoint == selectedWaypoint) Color.Green else Color.Blue
+                    )
+                }
+
+            }
+
+            waypoints.forEach { waypoint ->
+                currentLocation?.let { currentLoc ->
+                    val distance = currentLoc.distanceTo(waypoint)
+
+                    // Check if the waypoint is within 500 meters
+                    if (distance <= 500) {
+                        val scale = distance / 500f // Scale for the canvas
+                        val angle = bearingTo(currentLoc, waypoint)
+                        val adjustedAngle = Math.toRadians((angle - rotation).toDouble())
+
+                        val waypointX = centerX + radius * scale * cos(adjustedAngle).toFloat()
+                        val waypointY = centerY + radius * scale * sin(adjustedAngle).toFloat()
+
+                        // Draw waypoint circle
+                        drawCircle(
+                            color = if (waypoint == selectedWaypoint) Color.Magenta else Color.Cyan,
+                            radius = if (waypoint == selectedWaypoint) 10f else 8f, // Larger circle for selected waypoint
+                            center = Offset(waypointX, waypointY)
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+}
+@Composable
+fun GPSApp(isTracking: Boolean,
+           showClearDialog: Boolean,
+           onTrackingChange: (Boolean) -> Unit,
+           waypoints: List<Location>,
+           currentLocation: State<Location?>,
+           selectedWaypoint: MutableState<Location?>,
+           onSaveWaypoint: () -> Unit,
+           onClearWaypoints: () -> Unit,
+           onStartTracking: () -> Unit,
+           onStopTracking: () -> Unit,
+           onDialogSelect: () -> Unit,
+           onDialogDeSelect: () -> Unit,
+           compassRotation: Float) {
+
+    Column( verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,) {
+        Spacer(modifier = Modifier.width(10.dp))
+        CompassCanvas(waypoints, currentLocation.value, compassRotation,selectedWaypoint.value)
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        )
+        {
+            TrackingButton(
+                isTracking = isTracking,
+                onStartTracking = onStartTracking,
+                onStopTracking = onStopTracking,
+
+                )
+            Spacer(modifier = Modifier.width(10.dp))
+            if (isTracking) {
+                SaveWaypointButton (onSaveWaypoint)
+
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+        if (isTracking) {
+            Spacer(modifier = Modifier.height(5.dp))
+            currentLocation.value?.let { location ->
+                Text("Current Location: ${String.format("%.4f", location.latitude)}, ${String.format("%.4f", location.longitude)}"
+                    , fontSize = 14.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Left)
+            }
+        }
+
 
 
     }
 }
+
+
+@Composable
+fun TrackingButton(isTracking: Boolean, onStartTracking: () -> Unit, onStopTracking: () -> Unit) {
+    Button( modifier = Modifier.size(width = 180.dp, height = 50.dp),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color.White,
+            containerColor = Color.DarkGray,
+        ),onClick = {
+            if (isTracking) onStopTracking() else onStartTracking()
+        }) {
+        Text(color = Color.White, fontSize = 14.sp,
+            text=if (isTracking) "Stop Tracking" else "Start Tracking")
+    }
+}
+
+@Composable
+fun SaveWaypointButton(onSaveWaypoint: () -> Unit) {
+    Button( modifier = Modifier.size(width = 180.dp, height = 50.dp),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color.White,
+            containerColor = Color.DarkGray,
+        ),onClick = onSaveWaypoint) {
+        Text(color = Color.White,fontSize = 14.sp,
+            text="Save Waypoint")
+    }
+}
+// Function to calculate the bearing from one location to another
 fun bearingTo(start: Location, end: Location): Float {
     val startLat = Math.toRadians(start.latitude)
     val startLong = Math.toRadians(start.longitude)

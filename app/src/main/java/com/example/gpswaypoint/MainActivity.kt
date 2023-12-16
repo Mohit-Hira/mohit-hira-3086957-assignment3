@@ -36,10 +36,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 class MainActivity : ComponentActivity(),SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
-    private var compassRotation = mutableStateOf(0f)
+    private var compassRotation = mutableStateOf(0f) // Holds the current rotation angle of the compass
     private lateinit var locationManager: LocationManager
     private var waypoints = mutableListOf<Location>()
-    private val currentLocation = mutableStateOf<Location?>(null)
+    private var selectedWaypoint = mutableStateOf<Location?>(null)
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
             currentLocation.value = location
@@ -51,9 +51,11 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         override fun onProviderDisabled(provider: String) {}
     }
 
+    private val currentLocation = mutableStateOf<Location?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -70,17 +72,7 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         }
 
     }
-    private fun checkProximityToCurrentWaypoint(currentLocation: Location) {
-        val currentSelectedIndex = waypoints.indexOf(selectedWaypoint.value)
-        selectedWaypoint.value?.let { currentWaypoint ->
-            if (currentLocation.distanceTo(currentWaypoint) < 10) {
-                // Check if there is a previous waypoint
-                if (currentSelectedIndex > 0) {
-                    selectedWaypoint.value = waypoints[currentSelectedIndex -1]
-                }
-            }
-        }
-    }
+
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
             // Update compassRotation based on the sensor data
@@ -95,15 +87,7 @@ class MainActivity : ComponentActivity(),SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Handle sensor accuracy changes if needed
     }
-    private var selectedWaypoint = mutableStateOf<Location?>(null)
 
-    private fun startTracking() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
-            return
-        }
-        setupLocationTracking()
-    }
 
     private fun setupLocationTracking() {
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
@@ -121,14 +105,17 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, locationListener)
     }
 
-    private fun stopTracking() {
 
-        if (this::locationManager.isInitialized) {
-            locationManager.removeUpdates(locationListener)
-        }
+    private fun addWaypoint(location: Location) {
+        waypoints.add(location)
+        saveWaypointsToFile()
     }
 
-
+    private fun saveWaypointsToFile() {
+        val waypointsJson = Gson().toJson(waypoints)
+        val file = File(filesDir, "waypoints.json")
+        file.writeText(waypointsJson)
+    }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
