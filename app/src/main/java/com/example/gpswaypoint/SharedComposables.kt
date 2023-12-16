@@ -220,6 +220,53 @@ fun GPSApp(isTracking: Boolean,
         }
 
 
+//        Spacer(modifier = Modifier.height(5.dp))
+
+
+        if (waypoints.isNotEmpty()) {
+            Button(
+                modifier = Modifier.size(width = 180.dp, height = 50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.White,
+                    containerColor = Color.DarkGray,
+                ), onClick = onDialogSelect
+            ) {
+                Text(
+                    color = Color.White, fontSize = 14.sp,
+                    text = "Clear Waypoints"
+                )
+            }
+        }
+
+        if (showClearDialog) {
+            AlertDialog(
+                onDismissRequest = onDialogDeSelect,
+                title = { Text("Clear Waypoints") },
+                text = { Text("Are you sure you want to clear all waypoints?") },
+                confirmButton = {
+                    Button(modifier = Modifier.size(width = 120.dp, height = 50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            contentColor = Color.White,
+                            containerColor = Color.DarkGray,
+                        ),onClick =
+                        onClearWaypoints
+                    ) {
+                        Text(color = Color.White,fontSize = 14.sp,
+                            text="Confirm")
+                    }
+                },
+                dismissButton = {
+                    Button(modifier = Modifier.size(width = 120.dp, height = 50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            contentColor = Color.White,
+                            containerColor = Color.DarkGray,
+                        ),onClick = onDialogDeSelect) {
+                        Text(color = Color.White,fontSize = 14.sp,
+                            text="Cancel")
+                    }
+                }
+            )
+        }
 
     }
 }
