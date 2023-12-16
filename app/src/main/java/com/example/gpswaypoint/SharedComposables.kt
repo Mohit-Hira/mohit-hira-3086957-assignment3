@@ -267,10 +267,55 @@ fun GPSApp(isTracking: Boolean,
                 }
             )
         }
+        selectedWaypoint.value?.let { waypoint ->
+            val distance = currentLocation.value?.distanceTo(waypoint) ?: 0f
+            Text("Distance to Waypoint: ${String.format("%.2f", distance)}m", fontSize = 12.sp,
+                color = Color.Gray,fontWeight=FontWeight.Bold,
+                textAlign = TextAlign.Left)
+        }
+        WaypointSelector(waypoints, selectedWaypoint)
+    }
+}
+@Composable
+fun WaypointSelector(   waypoints: List<Location>,selectedWaypoint: MutableState<Location?>) {
+    if (waypoints.isNotEmpty()) {
+        Text("Select Waypoint",fontSize = 12.sp,
+            color = Color.Blue,
+            textAlign = TextAlign.Left)
 
+        LazyColumn {
+
+            itemsIndexed(waypoints) { index, waypoint ->
+                WaypointItem(waypoint, index,selectedWaypoint)
+            }
+        }
     }
 }
 
+@Composable
+fun WaypointItem(waypoint: Location, index: Int,selectedWaypoint: MutableState<Location?>) {
+    val isSelected = waypoint == selectedWaypoint.value
+
+    Card(
+        backgroundColor = if (isSelected) Color.Yellow else Color.White,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { selectedWaypoint.value = waypoint }
+    ) {
+        Column(modifier = Modifier.padding(6.dp)) {
+            Text("Waypoint ${index + 1}",fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,color = Color.Gray,
+                textAlign = TextAlign.Left)
+            Text("Latitude: ${waypoint.latitude}", fontSize = 12.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Left)
+            Text("Longitude: ${waypoint.longitude}", fontSize = 12.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Left)
+        }
+    }
+}
 
 @Composable
 fun TrackingButton(isTracking: Boolean, onStartTracking: () -> Unit, onStopTracking: () -> Unit) {

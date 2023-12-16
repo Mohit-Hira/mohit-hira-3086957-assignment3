@@ -42,7 +42,9 @@ class MainActivity : ComponentActivity(),SensorEventListener {
     private var selectedWaypoint = mutableStateOf<Location?>(null)
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
+            // Update location state
             currentLocation.value = location
+            checkProximityToCurrentWaypoint(location)
 
         }
 
@@ -55,7 +57,8 @@ class MainActivity : ComponentActivity(),SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+// Initialize location and sensor services
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -63,16 +66,54 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         sensorManager.registerListener(this, rotationVectorSensor, SensorManager.SENSOR_DELAY_NORMAL)
         setContent {
-
+            var isTracking by remember { mutableStateOf(false) }
+            var showClearDialog by remember { mutableStateOf(false) }
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colors.background) {
-
+                    GPSApp(isTracking = isTracking,
+                        showClearDialog = showClearDialog,
+                        onTrackingChange = { isTracking = it },
+                        waypoints = waypoints,
+                        currentLocation = currentLocation,
+                        selectedWaypoint = selectedWaypoint,
+                        onSaveWaypoint = {  currentLocation.value?.let { location ->
+                            addWaypoint(location)
+                        } },
+                        onClearWaypoints = {  clearWaypoints()
+                            showClearDialog = false
+                            selectedWaypoint.value=null },
+                        onStartTracking = {
+                            isTracking = true
+                            startTracking()
+                        },
+                        onStopTracking = {
+                            isTracking = false
+                            stopTracking()
+                        },
+                        onDialogSelect={ showClearDialog = true },
+                        onDialogDeSelect={ showClearDialog = false },
+                        compassRotation = compassRotation.value)
+//                    CompassCanvas()
                 }
             }
         }
 
-    }
+//        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+//        val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+//        sensorManager.registerListener(this, rotationVectorSensor, SensorManager.SENSOR_DELAY_NORMAL)
 
+    }
+    private fun checkProximityToCurrentWaypoint(currentLocation: Location) {
+        val currentSelectedIndex = waypoints.indexOf(selectedWaypoint.value)
+        selectedWaypoint.value?.let { currentWaypoint ->
+            if (currentLocation.distanceTo(currentWaypoint) < 10) {
+                // Check if there is a previous waypoint
+                if (currentSelectedIndex > 0) {
+                    selectedWaypoint.value = waypoints[currentSelectedIndex -1]
+                }
+            }
+        }
+    }
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
             // Update compassRotation based on the sensor data
@@ -88,6 +129,13 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         // Handle sensor accuracy changes if needed
     }
 
+    private fun startTracking() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+            return
+        }
+        setupLocationTracking()
+    }
 
     private fun setupLocationTracking() {
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
@@ -104,7 +152,16 @@ class MainActivity : ComponentActivity(),SensorEventListener {
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0f, locationListener)
     }
+    private fun clearWaypoints() {
+        waypoints.clear()
+        saveWaypointsToFile() // Update the file after clearing waypoints
+    }
+    private fun stopTracking() {
 
+        if (this::locationManager.isInitialized) {
+            locationManager.removeUpdates(locationListener)
+        }
+    }
 
     private fun addWaypoint(location: Location) {
         waypoints.add(location)
