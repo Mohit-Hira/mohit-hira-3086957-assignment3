@@ -63,7 +63,6 @@ class MainActivity : ComponentActivity(),SensorEventListener {
                 Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colors.background) {
                     GPSApp(isTracking = isTracking,
                         showClearDialog = showClearDialog,
-                        onTrackingChange = { isTracking = it },
                         waypoints = waypoints,
                         currentLocation = currentLocation,
                         selectedWaypoint = selectedWaypoint,

@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.lang.Math.atan2
@@ -50,8 +49,6 @@ import java.lang.Math.cos
 import java.lang.Math.log
 import java.lang.Math.sin
 import java.lang.Math.tan
-
-
 @Composable
 fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotation: Float
                   , selectedWaypoint: Location?) {
@@ -59,8 +56,6 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
         val centerX = size.width / 2
         val centerY = size.height / 2
         val radius = size.minDimension / 2
-
-        // Draw the compass circle
         drawCircle(
             color = Color.Black,
             radius = radius,
@@ -76,40 +71,24 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
             textSize = 40f
             typeface = Typeface.DEFAULT_BOLD
         }
-        // Apply rotation to the canvas
         withTransform({
-            // Apply rotation to the canvas
             rotate(rotation, pivot = Offset(centerX, centerY))
         }) {
-            val textPaint = Paint().apply {
-                textAlign = Paint.Align.CENTER
-                textSize = 40f
-                typeface = Typeface.DEFAULT_BOLD
-            }
 
-            // Draw the compass directions
-            // Drawing North
             textPaint.color = Color.Red.toArgb()
             drawContext.canvas.nativeCanvas.drawText("N", centerX, centerY - radius + 20, textPaint)
-
-            // Drawing East
             textPaint.color = Color.Black.toArgb()
             drawContext.canvas.nativeCanvas.drawText("E", centerX + radius - 20, centerY, textPaint)
-
-            // Drawing West
             drawContext.canvas.nativeCanvas.drawText("W", centerX - radius + 20, centerY, textPaint)
-
-            // Drawing South
             drawContext.canvas.nativeCanvas.drawText("S", centerX, centerY + radius - 20, textPaint)
         }
-        // Draw lines pointing towards each waypoint
         waypoints.forEach { waypoint ->
             if (currentLocation != null) {
                 val angle = bearingTo(currentLocation, waypoint)
                 val adjustedAngle = Math.toRadians((angle - rotation).toDouble())
                 val lineEndX = (centerX + radius * cos(adjustedAngle)).toFloat()
                 val lineEndY = (centerY + radius * sin(adjustedAngle)).toFloat()
-                val arrowLength = radius  // Adjust the length of the arrow as needed
+                val arrowLength = radius
                 val arrowHeadSize = 40f
                 if (waypoint == selectedWaypoint) {
                     drawLine(
@@ -122,7 +101,7 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
 
                 val endX = (centerX + arrowLength * cos(adjustedAngle)).toFloat()
                 val endY = (centerY + arrowLength * sin(adjustedAngle)).toFloat()
-                // Draw the outward-pointing arrow head
+
                 val arrowPath = Path().apply {
                     moveTo(endX, endY)
                     lineTo((endX - arrowHeadSize * cos(adjustedAngle - Math.PI / 6)).toFloat(),
@@ -139,23 +118,16 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
                         color = if (waypoint == selectedWaypoint) Color.Green else Color.Blue
                     )
                 }
-
             }
-
             waypoints.forEach { waypoint ->
                 currentLocation?.let { currentLoc ->
                     val distance = currentLoc.distanceTo(waypoint)
-
-                    // Check if the waypoint is within 500 meters
                     if (distance <= 500) {
-                        val scale = distance / 500f // Scale for the canvas
+                        val scale = distance / 500f
                         val angle = bearingTo(currentLoc, waypoint)
                         val adjustedAngle = Math.toRadians((angle - rotation).toDouble())
-
                         val waypointX = centerX + radius * scale * cos(adjustedAngle).toFloat()
                         val waypointY = centerY + radius * scale * sin(adjustedAngle).toFloat()
-
-                        // Draw waypoint circle
                         drawCircle(
                             color = if (waypoint == selectedWaypoint) Color.Magenta else Color.Cyan,
                             radius = if (waypoint == selectedWaypoint) 10f else 8f, // Larger circle for selected waypoint
@@ -171,7 +143,6 @@ fun CompassCanvas(waypoints: List<Location>, currentLocation: Location?, rotatio
 @Composable
 fun GPSApp(isTracking: Boolean,
            showClearDialog: Boolean,
-           onTrackingChange: (Boolean) -> Unit,
            waypoints: List<Location>,
            currentLocation: State<Location?>,
            selectedWaypoint: MutableState<Location?>,
@@ -218,11 +189,6 @@ fun GPSApp(isTracking: Boolean,
                     textAlign = TextAlign.Left)
             }
         }
-
-
-//        Spacer(modifier = Modifier.height(5.dp))
-
-
         if (waypoints.isNotEmpty()) {
             Button(
                 modifier = Modifier.size(width = 180.dp, height = 50.dp),
@@ -291,7 +257,6 @@ fun WaypointSelector(   waypoints: List<Location>,selectedWaypoint: MutableState
         }
     }
 }
-
 @Composable
 fun WaypointItem(waypoint: Location, index: Int,selectedWaypoint: MutableState<Location?>) {
     val isSelected = waypoint == selectedWaypoint.value
@@ -316,7 +281,6 @@ fun WaypointItem(waypoint: Location, index: Int,selectedWaypoint: MutableState<L
         }
     }
 }
-
 @Composable
 fun TrackingButton(isTracking: Boolean, onStartTracking: () -> Unit, onStopTracking: () -> Unit) {
     Button( modifier = Modifier.size(width = 180.dp, height = 50.dp),
@@ -330,7 +294,6 @@ fun TrackingButton(isTracking: Boolean, onStartTracking: () -> Unit, onStopTrack
             text=if (isTracking) "Stop Tracking" else "Start Tracking")
     }
 }
-
 @Composable
 fun SaveWaypointButton(onSaveWaypoint: () -> Unit) {
     Button( modifier = Modifier.size(width = 180.dp, height = 50.dp),
@@ -342,21 +305,12 @@ fun SaveWaypointButton(onSaveWaypoint: () -> Unit) {
             text="Save Waypoint")
     }
 }
-// Function to calculate the bearing from one location to another
 fun bearingTo(start: Location, end: Location): Float {
     val startLat = Math.toRadians(start.latitude)
     val startLong = Math.toRadians(start.longitude)
     val endLat = Math.toRadians(end.latitude)
     val endLong = Math.toRadians(end.longitude)
-
     val dLong = endLong - startLong
     val dPhi = log(tan(endLat / 2.0 + Math.PI / 4.0) / tan(startLat / 2.0 + Math.PI / 4.0))
-
     return (Math.toDegrees(atan2(dLong, dPhi)).toFloat() + 360.0f) % 360.0f
 }
-
-
-
-
-
-
